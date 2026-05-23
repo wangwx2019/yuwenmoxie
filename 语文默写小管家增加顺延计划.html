@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>一年级语文下册默写小管家</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+        body { background: linear-gradient(180deg, #FFF9E6 0%, #FFE8F7 100%); min-height: 100vh; padding-bottom: 90px; overflow-x: hidden; }
+        .header { text-align: center; padding: 25px 20px 15px; }
+        .header h1 { font-size: 28px; color: #FF6B9D; font-weight: 800; text-shadow: 2px 2px 0px #FFE0EF; margin-bottom: 8px; }
+        .progress-bar { width: 90%; height: 20px; background: #fff; border-radius: 20px; margin: 0 auto; overflow: hidden; border: 3px solid #FFB6D9; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #FF85B3 0%, #FF6B9D 100%); border-radius: 20px; transition: width 0.5s ease; }
+        .progress-text { font-size: 16px; color: #8A4F7D; margin-top: 8px; font-weight: 600; }
+        .content-card { background: #fff; border-radius: 24px; margin: 15px 20px; padding: 20px; border: 4px solid #FFCCE5; box-shadow: 0 4px 12px rgba(255, 107, 157, 0.15); }
+        .card-title { font-size: 22px; color: #FF6B9D; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .word-list { display: flex; flex-wrap: wrap; gap: 12px 10px; margin-bottom: 20px; }
+        .word-item { background: #FFF0F7; border: 2px solid #FFB6D9; border-radius: 12px; padding: 8px 15px; font-size: 20px; font-weight: 600; color: #8A2BE2; min-width: 50px; text-align: center; cursor: default; }
+        .word-item.wrong { background: #FFE5E5; border-color: #FF4D4F; color: #E11D48; }
+        .sentence-item { background: #F0F8FF; border: 2px solid #B6D8FF; border-radius: 12px; padding: 12px 15px; font-size: 18px; font-weight: 600; color: #2F5496; margin-bottom: 10px; line-height: 1.6; }
+        .tip-box { background: #E8FFF5; border: 2px solid #99E8C9; border-radius: 16px; padding: 15px; margin: 10px 0; }
+        .tip-box p { font-size: 16px; color: #238556; font-weight: 600; line-height: 1.5; }
+        .status-tag { padding: 4px 10px; border-radius: 12px; font-size: 14px; font-weight: 700; margin-left: 8px; }
+        .status-done { background: #34D399; color: #fff; }
+        .status-doing { background: #F59E0B; color: #fff; }
+        .status-prepare { background: #60A5FA; color: #fff; }
+        .fixed-bottom { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; padding: 15px 20px; border-top: 3px solid #FFCCE5; display: flex; gap: 8px; z-index: 999; }
+        .btn { flex: 1; border: none; border-radius: 20px; padding: 12px 0; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; }
+        .btn-primary { background: linear-gradient(180deg, #FF6B9D 0%, #FF4988 100%); color: #fff; box-shadow: 0 4px 0px #D63A6F; }
+        .btn-secondary { background: linear-gradient(180deg, #A78BFA 0%, #8B5CF6 100%); color: #fff; box-shadow: 0 4px 0px #6D28D9; }
+        .btn-plan { background: linear-gradient(180deg, #2DD4BF 0%, #14B8A6 100%); color: #fff; box-shadow: 0 4px 0px #0F766E; }
+        .btn-clear { background: linear-gradient(180deg, #FF9F43 0%, #FF6B35 100%); color: #fff; box-shadow: 0 4px 0px #E55300; }
+        .btn-delay { background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%); color: #fff; box-shadow: 0 4px 0px #B45309; }
+        .btn-advance { background: linear-gradient(180deg, #34D399 0%, #10B981 100%); color: #fff; box-shadow: 0 4px 0px #047857; width: 100%; margin: 10px 0 20px; }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .modal-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .modal-mask.show { opacity: 1; visibility: visible; }
+        .modal-box { background: #fff; border-radius: 24px; width: 100%; max-width: 450px; max-height: 85vh; border: 4px solid #FFCCE5; display: flex; flex-direction: column; transform: scale(0.8); transition: transform 0.3s ease; overflow: hidden; }
+        .modal-mask.show .modal-box { transform: scale(1); }
+        .modal-header { padding: 20px 20px 0; flex-shrink: 0; }
+        .modal-title { font-size: 24px; color: #FF6B9D; font-weight: 800; margin-bottom: 0; }
+        .modal-content-scroll { flex: 1; overflow-y: auto; padding: 15px 20px; }
+        .modal-footer { padding: 0 20px 20px; flex-shrink: 0; }
+        .modal-input { width: 100%; border: 3px solid #FFB6D9; border-radius: 16px; padding: 12px 15px; font-size: 18px; margin-bottom: 15px; outline: none; }
+        .modal-input:focus { border-color: #FF6B9D; }
+        .modal-btn-group { display: flex; gap: 12px; margin-top: 10px; flex-direction: column; }
+        .modal-btn { flex: 1; border: none; border-radius: 16px; padding: 12px 0; font-size: 17px; font-weight: 700; cursor: pointer; }
+        .btn-confirm { background: #FF6B9D; color: #fff; }
+        .btn-cancel { background: #F3F4F6; color: #666; }
+        .btn-success { background: #34D399; color: #fff; }
+        .btn-today { background: #FF9F43; color: #fff; margin-bottom: 8px; }
+        .btn-all { background: #FF4D4F; color: #fff; margin-bottom: 8px; }
+        .btn-danger { background: #FF4D4F; color: #fff; }
+        .praise-text { font-size: 20px; color: #8A2BE2; font-weight: 600; line-height: 1.6; margin: 15px 0 25px; }
+        .wrong-word-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #FFF0F7; border-radius: 12px; margin-bottom: 10px; }
+        .wrong-word { font-size: 22px; font-weight: 700; color: #E11D48; }
+        .wrong-count { font-size: 16px; font-weight: 600; color: #8A4F7D; }
+        .plan-section { text-align: left; margin-bottom: 25px; }
+        .plan-subtitle { font-size: 18px; color: #FF6B9D; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+        .plan-desc { font-size: 14px; color: #666; margin-bottom: 8px; line-height: 1.4; }
+        .confirm-text { font-size: 17px; color: #666; line-height: 1.6; margin: 10px 0; text-align: left; }
+        .confirm-text strong { color: #FF6B9D; font-weight: 700; }
+        #fireworks { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10000; }
+        .plan-word-title { font-size: 20px; color: #FF6B9D; font-weight: 800; margin: 15px 0 12px 0; }
+        .plan-word-item { background: #FFF0F7; border: 3px solid #FFB6D9; border-radius: 16px; padding: 12px 20px; font-size: 20px; font-weight: 700; color: #8A2BE2; min-width: 60px; text-align: center; cursor: default; }
+    </style>
+</head>
+<body>
+    <canvas id="fireworks"></canvas>
+
+    <div class="header">
+        <h1>📖 语文默写小管家 📝</h1>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">准备开始学习</div>
+    </div>
+
+    <div class="content-card" id="prepareArea" style="display: block;">
+        <h2 class="card-title">🌟 明日开始学习</h2>
+        <div class="tip-box">
+            <p>📅 学习开始时间：2026年4月27日（第一天）</p>
+            <p>📚 学习内容：第一课《春夏秋冬》全量生字</p>
+            <p>✨ 点击下方【计划】按钮，可提前查看明日完整默写计划！</p>
+        </div>
+    </div>
+
+    <div class="content-card" id="reviewArea" style="display: none;">
+        <h2 class="card-title">🔍 昨日错字复习</h2>
+        <div class="tip-box"><p>先复习昨天写错的字，全部默写完成再开始新内容哦~</p></div>
+        <div class="word-list" id="reviewWordList"><div class="word-item">暂无错字，太棒啦！</div></div>
+    </div>
+
+    <div class="content-card" id="newArea" style="display: none;">
+        <h2 class="card-title" id="newTitle">📚 今日新课 识字1 春夏秋冬</h2>
+        <h3 class="card-title" style="font-size: 18px; margin-top: 10px;">一类字（写字表）</h3>
+        <div class="word-list" id="type1WordList"></div>
+        <h3 class="card-title" style="font-size: 18px; margin-top: 10px;">二类字（识字表）</h3>
+        <div class="word-list" id="type2WordList"></div>
+        <div id="rijiArea" style="display: none;">
+            <h3 class="card-title" style="font-size: 18px; margin-top: 10px;">日积月累</h3>
+            <div id="rijiList"></div>
+        </div>
+    </div>
+
+    <div class="content-card" id="weekendArea" style="display: none;">
+        <h2 class="card-title">🎉 周末总复习</h2>
+        <div class="tip-box"><p>本周所有写错的字都在这里啦，全部默写一遍，巩固记忆哦！</p></div>
+        <div class="word-list" id="weekendWordList"></div>
+    </div>
+
+    <div class="fixed-bottom">
+        <button class="btn btn-secondary" onclick="openWrongBook()">📕 错字本</button>
+        <button class="btn btn-plan" onclick="openPlanCenter()">📅 计划</button>
+        <button class="btn btn-clear" onclick="openClearModal()">🗑️ 清除</button>
+        <button class="btn btn-delay" onclick="openDelayModal()">⏸️ 未打卡</button>
+        <button class="btn btn-primary" onclick="openFinishModal()">✅ 默写结束</button>
+    </div>
+
+    <!-- 弹窗区域 -->
+    <div class="modal-mask" id="finishModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">📝 默写完成啦</h3></div>
+            <div class="modal-content-scroll">
+                <p style="font-size: 16px; color: #666; margin-bottom: 15px;">请输入本次默写写错的字，多个字用空格分开</p>
+                <input type="text" class="modal-input" id="wrongWordInput" placeholder="例如：春 夏 秋 冬">
+            </div>
+            <div class="modal-footer">
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-cancel" onclick="closeFinishModal()">取消</button>
+                    <button class="modal-btn btn-success" onclick="submitNoWrong()">无错字</button>
+                    <button class="modal-btn btn-confirm" onclick="submitWrongWords()">确认提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="advanceFinishModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">📝 提前完成明日默写</h3></div>
+            <div class="modal-content-scroll">
+                <p style="font-size: 16px; color: #666; margin-bottom: 15px;">请输入明日默写写错的字，多个字用空格分开</p>
+                <input type="text" class="modal-input" id="advanceWrongWordInput" placeholder="例如：春 夏 秋 冬">
+            </div>
+            <div class="modal-footer">
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-cancel" onclick="closeAdvanceFinishModal()">取消</button>
+                    <button class="modal-btn btn-success" onclick="submitAdvanceNoWrong()">无错字</button>
+                    <button class="modal-btn btn-confirm" onclick="submitAdvanceWrongWords()">确认提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="planCenterModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">📅 学习计划中心</h3></div>
+            <div class="modal-content-scroll">
+                <div class="plan-section">
+                    <div class="plan-subtitle">
+                        <span>📊 今日计划</span>
+                        <span id="todayStatus" class="status-tag status-prepare">未开始</span>
+                    </div>
+                    <p class="plan-desc" id="todayPlanTip">学习尚未开始，明日正式启动~</p>
+                    <div class="word-list" id="planTodayWords"></div>
+                </div>
+                <div class="plan-section">
+                    <div class="plan-subtitle"><span id="tomorrowPlanTitle">🎯 明日计划（4月27日 第一天）</span></div>
+                    <p class="plan-desc" id="tomorrowPlanDesc">✅ 第一课《春夏秋冬》全量生字默写</p>
+                    <div class="plan-word-title">错字复习</div>
+                    <div class="word-list" id="planTomorrowWrongWords" style="gap:15px 12px;"></div>
+                    <div class="plan-word-title">一类字（写字表）</div>
+                    <div class="word-list" id="planTomorrowType1" style="gap:15px 12px;"></div>
+                    <div class="plan-word-title">二类字（识字表）</div>
+                    <div class="word-list" id="planTomorrowType2" style="gap:15px 12px;"></div>
+                    <button class="btn btn-advance" id="advanceBtn" style="display: none;" onclick="openAdvanceFinishModal()">📝 提前完成明日默写</button>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="modal-btn btn-cancel" style="width:100%;" onclick="closePlanCenter()">关闭</button></div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="praiseModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">🌟 太棒啦！</h3></div>
+            <div class="modal-content-scroll"><div class="praise-text" id="praiseText">你今天全对啦！真是个认真努力的识字小天才，给你点个大大的赞！👍</div></div>
+            <div class="modal-footer"><button class="modal-btn btn-primary" style="width: 100%;" onclick="closePraiseModal()">继续加油</button></div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="wrongBookModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">📕 我的错字本</h3></div>
+            <div class="modal-content-scroll"><div id="wrongBookList" style="margin-bottom: 10px;"><p style="color: #999;">暂无错字，继续保持哦！</p></div></div>
+            <div class="modal-footer"><button class="modal-btn btn-cancel" style="width: 100%;" onclick="closeWrongBook()">关闭</button></div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="clearModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">🗑️ 清除记录</h3></div>
+            <div class="modal-content-scroll">
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-today" onclick="showConfirmModal('today')">🔸 清除今日记录</button>
+                    <button class="modal-btn btn-all" onclick="showConfirmModal('all')">🔴 清除所有记录</button>
+                    <button class="modal-btn btn-cancel" onclick="closeClearModal()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="confirmModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title" id="confirmTitle">⚠️ 确认操作</h3></div>
+            <div class="modal-content-scroll"><div class="confirm-text" id="confirmText"></div></div>
+            <div class="modal-footer">
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-cancel" onclick="closeConfirmModal()">取消</button>
+                    <button class="modal-btn btn-danger" id="confirmActionBtn" onclick="executeConfirmAction()">确认清除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="advanceTipModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">💪 太棒啦！</h3></div>
+            <div class="modal-content-scroll"><div class="confirm-text" id="advanceTipText"></div></div>
+            <div class="modal-footer"><button class="modal-btn btn-primary" style="width: 100%;" onclick="closeAdvanceTipModal()">继续加油</button></div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="tipModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">💡 提示</h3></div>
+            <div class="modal-content-scroll"><div class="confirm-text" id="tipText"></div></div>
+            <div class="modal-footer"><button class="modal-btn btn-primary" style="width: 100%;" onclick="closeTipModal()">知道了</button></div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="delayModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">⚠️ 确认未打卡？</h3></div>
+            <div class="modal-content-scroll"><div class="confirm-text">确认今日计划未打卡？<br><br>今日计划将顺延到明日，后面所有计划往后顺延一天。</div></div>
+            <div class="modal-footer">
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-cancel" onclick="closeDelayModal()">取消</button>
+                    <button class="modal-btn btn-danger" onclick="executeDelay()">确认顺延</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 课本数据
+        const bookData = [
+            {unitName:"第一单元 识字",days:[{dayName:"识字1 春夏秋冬",type1:["春","冬","风","雪","花","飞","入"],type2:["霜","吹","落","降","飘","游","池","入"],riji:[]},{dayName:"识字2 姓氏歌",type1:["姓","什","么","双","国","王","方"],type2:["姓","氏","李","张","古","吴","赵","钱","孙","周","王","官"],riji:[]},{dayName:"识字3 小青蛙",type1:["青","清","晴","情","请","生","气"],type2:["清","晴","眼","睛","保","护","害","事","情","请","让","病"],riji:[]},{dayName:"识字4 猜字谜",type1:["字","左","右","红","时","动","万"],type2:["相","遇","喜","欢","怕","言","互","令","动","万","纯","净","阴","雷","电","阵","冰","冻","夹"],riji:[]},{dayName:"语文园地一",type1:["文","数","学","音","乐"],type2:["识","字","组","计","算","减","式","图","形","卡","片","合","唱","团"],riji:["春眠不觉晓，处处闻啼鸟。","夜来风雨声，花落知多少。","——[唐] 孟浩然《春晓》"]}]},
+            {unitName:"第二单元 阅读",days:[{dayName:"课文1 热爱中国共产党",type1:["共","产","党","太","阳","光"],type2:["热","爱","共","产","党","太","阳","光","怀","抱","幸","福","成","长"],riji:[]},{dayName:"课文2 吃水不忘挖井人",type1:["井","主","江","住","没","以","后"],type2:["吃","忘","井","村","毛","主","席","乡","亲","战","士","想","念"],riji:[]},{dayName:"课文3 我多想去看看",type1:["会","北","京","门","广","非","常"],type2:["想","告","诉","路","京","安","门","广","场","非","常","壮","观","接","觉","再","做","各","种","样","梦","伙","伴","却","趣","这"],riji:[]},{dayName:"语文园地二 生字",type1:["认","写","字","词","句","子"],type2:["认","连","选","圈","涂","填","试","练"],riji:[]},{dayName:"语文园地二 日积月累",type1:["尺","头","只","言","云","深","处"],type2:["仅","所","见","闻","其","人","不","遇","言","师","只","云","深","处","知","处"],riji:["松下问童子，言师采药去。","只在此山中，云深不知处。","——[唐] 贾岛《寻隐者不遇》"]}]},
+            {unitName:"第三单元 阅读",days:[{dayName:"课文4 小公鸡和小鸭子",type1:["他","河","说","也","地","听","哥"],type2:["块","捉","急","直","哭","跟","忽","然","喊","身","只","跟","身","羽","毛","信","跟","身","羽","毛","信","死","救","命"],riji:[]},{dayName:"课文5 树和喜鹊",type1:["单","居","招","呼","快","乐"],type2:["只","窝","孤","单","种","都","邻","居","招","呼","静","乐"],riji:[]},{dayName:"课文6 怎么都快乐",type1:["玩","很","当","音","讲","行","许"],type2:["怎","独","跳","绳","得","羽","球","戏","排","篮","连","运","动"],riji:[]},{dayName:"语文园地三 生字",type1:["字","音","节","查","找","首","页"],type2:["厨","C","chu","音","序","查","字","法","口","诀","音","序","字","母","音","节","页","码"],riji:[]},{dayName:"语文园地三 日积月累",type1:["李","白","舟","行","闻","不","及"],type2:["赠","汪","伦","李","白","乘","舟","将","欲","行","忽","闻","岸","上","踏","歌","声","桃","花","潭","水","深","千","尺","不","及","汪","伦","送","我","情"],riji:["李白乘舟将欲行，忽闻岸上踏歌声。","桃花潭水深千尺，不及汪伦送我情。","——[唐] 李白《赠汪伦》"]}]},
+            {unitName:"第四单元 阅读",days:[{dayName:"课文7 静夜思",type1:["思","床","前","光","低","故","乡"],type2:["夜","思","床","疑","举","望","低","故","乡"],riji:[]},{dayName:"课文8 夜色",type1:["色","外","看","爸","晚","笑","再"],type2:["胆","敢","往","外","勇","敢","窗","乱","偏","散","步","原","来","像","微","笑","再","黑","夜","晚","看","见"],riji:[]},{dayName:"课文9 端午粽",type1:["午","节","米","间","分","豆","肉"],type2:["端","午","节","粽","总","米","间","分","豆","肉","带","知","据","念","爱","国","诗","人","屈","原"],riji:[]},{dayName:"语文园地四 生字",type1:["书","本","笔","尺","刀","本","包"],type2:["册","支","铅","笔","棵","架","部","台","辆","匹","册","支","杆","只","头"],riji:[]},{dayName:"语文园地四 日积月累",type1:["子","女","父","母","兄","弟","友"],type2:["尊","老","爱","幼","血","浓","于","水","同","心","协","力","天伦之乐","欢聚一堂"],riji:["尊老爱幼","血浓于水","同心协力","天伦之乐","欢聚一堂"]}]},
+            {unitName:"第五单元 识字",days:[{dayName:"识字5 动物儿歌",type1:["间","迷","造","运","池","欢","网"],type2:["蜻","蜓","迷","藏","造","蚂","蚁","食","粮","蜘","蛛","结","网"],riji:[]},{dayName:"识字6 古对今",type1:["古","凉","细","夕","李","语","香"],type2:["圆","严","寒","酷","暑","凉","晨","细","朝","霞","夕","阳","杨","柳","莺","歌","燕","舞","鸟语花香"],riji:[]},{dayName:"识字7 操场上",type1:["打","拍","跑","足","声","身","体"],type2:["操","场","拔","拍","跑","踢","铃","热闹","锻炼","身体"],riji:[]},{dayName:"识字8 人之初",type1:["之","相","近","习","远","玉","义"],type2:["初","性","善","性相近","习相远","苟","教","迁","教","道","贵","以","专","幼","学","老","何","为","玉不琢","不成器","人不学","不知义"],riji:[]},{dayName:"语文园地五",type1:["饭","能","饱","茶","泡","轻","鞭","炮"],type2:["饭","饱","茶","泡","足","跑","手","抱","衣","袍","火","炮"],riji:["芝麻开花——节节高","十五个吊桶打水——七上八下","竹篮子打水——一场空"]}]},
+            {unitName:"第六单元 阅读",days:[{dayName:"课文10 古诗二首",type1:["首","采","无","树","爱","尖","角"],type2:["首","踪迹","浮萍","泉眼","惜","阴","晴","柔","荷","露","角"],riji:["《池上》[唐]白居易","小娃撑小艇，偷采白莲回。","不解藏踪迹，浮萍一道开。","《小池》[宋]杨万里","泉眼无声惜细流，树阴照水爱晴柔。","小荷才露尖尖角，早有蜻蜓立上头。"]},{dayName:"课文11 浪花",type1:["亮","机","台","放","鱼","朵","美"],type2:["浪","淘气","呀","浅水湾","沙滩","摸","丫","笑","泪","都","流出来了","才","哗啦","跑回家","捧","雪白","贝壳","青青","小虾","篮子","装不下"],riji:[]},{dayName:"课文12 荷叶圆圆",type1:["亮","机","台","放","鱼","朵","美"],type2:["珠","摇","篮","晶亮","停机坪","展","透","翅膀","唱歌","朵","蹲","歌台","凉伞","嘻嘻","捧起","水花"],riji:[]},{dayName:"课文13 要下雨了",type1:["直","呀","边","呢","吗","吧","加"],type2:["腰","坡","沉","伸","潮湿","呢","空","闷","消息","搬","响","阵","哗"],riji:[]},{dayName:"语文园地六",type1:["棍","汤","扇","椅","萤","牵","织","斗"],type2:["冰棍","西瓜","绿豆汤","凉席","蚊香","花露水","蒲扇","竹椅","萤火虫","牵牛","织女","北斗星"],riji:["朝霞不出门，晚霞行千里。","有雨山戴帽，无雨半山腰。","早晨下雨当日晴，晚上下雨到天明。","蚂蚁搬家蛇过道，大雨不久要来到。"]}]},
+            {unitName:"第七单元 阅读",days:[{dayName:"课文14 文具的家",type1:["文","找","平","办","让","包"],type2:["具","次","丢","哪","新","每","平","她","些","仔细","检查","所","伙伴"],riji:[]},{dayName:"课文15 一分钟",type1:["钟","元","洗","共","已","经","坐"],type2:["钟","丁零","闹","元","迟","洗","背","刚","叹","汽","决定","已经"],riji:[]},{dayName:"课文16 动物王国开大会",type1:["要","连","百","还","舌","点","头"],type2:["物","虎","熊","通知","意","遍","百","舌","鬼脸","准","第"],riji:[]},{dayName:"课文17 小猴子下山",type1:["块","非常","往","瓜","进","空"],type2:["猴","结","掰","扛","满","扔","摘","捧","瓜","圆","蹦","追"],riji:[]},{dayName:"语文园地七",type1:["刷","梳","巾","皂","澡","盆"],type2:["卫生间","牙刷","梳子","毛巾","香皂","洗澡","洗脸","盆"],riji:["不知则问，不能则学。——《荀子》","读书百遍，而义自见。——董遇","读万卷书，行万里路。——董其昌"]}]},
+            {unitName:"第八单元 阅读",days:[{dayName:"课文18 棉花姑娘",type1:["病","医","别","奇","七","星","干"],type2:["棉","娘","治","燕","别","干","然","奇","颗","瓢","碧","吐","啦"],riji:[]},{dayName:"课文19 咕咚",type1:["吓","怕","跟","家","羊","象","都"],type2:["咕咚","熟","掉","吓","鹿","逃","命","象","野","拦","领"],riji:[]},{dayName:"课文20 小壁虎借尾巴",type1:["捉","条","爬","姐","您","草","房"],type2:["壁虎","墙","蚊","咬","断","您","拨","甩","赶","房","傻","转"],riji:[]},{dayName:"语文园地八 生字",type1:["吵","现","顶","胖","票","交","父"],type2:["吵","现","顶","胖","票","交","父","弓长张","李","胡","吴","徐","许"],riji:[]},{dayName:"语文园地八 日积月累",type1:["鸡","画","红","身","雪","叫","开"],type2:["画鸡","唐寅","头上红冠不用裁，满身雪白走将来。","平生不敢轻言语，一叫千门万户开。"],riji:["《画鸡》[明]唐寅","头上红冠不用裁，满身雪白走将来。","平生不敢轻言语，一叫千门万户开。"]}]}
+        ];
+
+        const praiseList = [
+            "你今天全对啦！真是个认真努力的识字小天才，给你点个大大的赞！👍",
+            "太厉害啦！一个错字都没有，你就是班级里的识字大王！🏆",
+            "哇塞！全部写对了，你的记忆力也太棒了吧，继续加油哦！💪",
+            "太棒了宝贝！今天的默写完美通关，你认真的样子超酷的！✨",
+            "全对成就达成！你真是爸爸妈妈的骄傲，未来的小作家就是你！📖",
+            "太牛了！没有一个错字，你的努力都被看见啦，给你放烟花庆祝！🎆"
+        ];
+
+        const START_DATE = new Date(2026, 3, 27);
+        const UNIT_DAYS = 5;
+        const FIRST_DAY_DATA = bookData[0].days[0];
+        const TOTAL_UNITS = bookData.length;
+        const TOTAL_DAYS = TOTAL_UNITS * UNIT_DAYS;
+
+        let studyData = {
+            currentUnit: 0, currentDay: 0,
+            wrongWordBook: {},
+            lastDayWrongWords: [], weekWrongWords: [],
+            isWeekend: false, isBeforeStart: true,
+            todayWords: [], todayWrongWords: [],
+            isFinished: false,
+            advanceDays: 0,
+            delayDays: 0
+        };
+
+        let currentClearAction = null;
+        let currentTomorrowData = null;
+
+        function getActualStartDate() {
+            const actualStart = new Date(START_DATE);
+            actualStart.setDate(actualStart.getDate() + (studyData.delayDays || 0));
+            return actualStart;
+        }
+
+        function isBeforeStartDate() {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const actualStart = getActualStartDate();
+            actualStart.setHours(0,0,0,0);
+            return today < actualStart;
+        }
+
+        function autoSetCurrentProgress() {
+            studyData.isBeforeStart = isBeforeStartDate();
+            if(studyData.isBeforeStart) {
+                studyData.currentUnit = 0;
+                studyData.currentDay = 0;
+                return;
+            }
+            const today = new Date();
+            const actualStart = getActualStartDate();
+            const timeDiff = today.getTime() - actualStart.getTime();
+            const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+            const totalDay = Math.max(0, dayDiff) + (studyData.advanceDays || 0);
+            studyData.currentUnit = Math.floor(totalDay / UNIT_DAYS);
+            studyData.currentDay = totalDay % UNIT_DAYS;
+            
+            if(studyData.currentUnit >= TOTAL_UNITS) {
+                studyData.currentUnit = TOTAL_UNITS - 1;
+                studyData.currentDay = UNIT_DAYS - 1;
+            }
+        }
+
+        function loadTodayDefaultWords() {
+            if(studyData.isBeforeStart) return;
+            const currentDayData = bookData[studyData.currentUnit].days[studyData.currentDay];
+            studyData.todayWords = [...new Set([...currentDayData.type1, ...currentDayData.type2])];
+        }
+
+        function initData() {
+            const localData = localStorage.getItem("chineseWritePlan");
+            if (localData) studyData = JSON.parse(localData);
+            if(typeof studyData.advanceDays === 'undefined') studyData.advanceDays = 0;
+            if(typeof studyData.delayDays === 'undefined') studyData.delayDays = 0;
+            if(typeof studyData.wrongWordBook === 'undefined' || Array.isArray(studyData.wrongWordBook)) studyData.wrongWordBook = {};
+            autoSetCurrentProgress();
+            loadTodayDefaultWords();
+            updatePage();
+        }
+
+        function saveData() {
+            localStorage.setItem("chineseWritePlan", JSON.stringify(studyData));
+        }
+
+        function updatePage() {
+            const progressText = document.getElementById("progressText");
+            const prepareArea = document.getElementById("prepareArea");
+            const studyArea = document.getElementById("reviewArea");
+            const newArea = document.getElementById("newArea");
+
+            if(studyData.isBeforeStart) {
+                const actualStart = getActualStartDate();
+                const month = actualStart.getMonth() + 1;
+                const day = actualStart.getDate();
+                progressText.innerText = `准备开始学习（${month}月${day}日启动）`;
+                document.getElementById("progressFill").style.width = "0%";
+                prepareArea.style.display = "block";
+                studyArea.style.display = "none";
+                newArea.style.display = "none";
+                document.getElementById("weekendArea").style.display = "none";
+                return;
+            }
+
+            prepareArea.style.display = "none";
+            studyArea.style.display = "block";
+            newArea.style.display = "block";
+            
+            const finishedDays = studyData.currentUnit * UNIT_DAYS + studyData.currentDay;
+            const progressPercent = Math.min((finishedDays / TOTAL_DAYS) * 100, 100);
+            document.getElementById("progressFill").style.width = progressPercent + "%";
+            progressText.innerText = `${bookData[studyData.currentUnit].unitName} 第${studyData.currentDay + 1}天`;
+
+            const dayOfWeek = new Date().getDay();
+            studyData.isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+            studyData.isWeekend ? renderWeekendWords() : renderDailyContent();
+            renderWrongBook();
+        }
+
+        function renderDailyContent() {
+            const currentDayData = bookData[studyData.currentUnit].days[studyData.currentDay];
+            document.getElementById("newTitle").innerHTML = `📚 今日新课 ${currentDayData.dayName}`;
+            document.getElementById("type1WordList").innerHTML = currentDayData.type1.map(w=>`<div class="word-item">${w}</div>`).join('');
+            document.getElementById("type2WordList").innerHTML = currentDayData.type2.map(w=>`<div class="word-item">${w}</div>`).join('');
+            
+            const rijiArea = document.getElementById("rijiArea");
+            const rijiList = document.getElementById("rijiList");
+            currentDayData.riji?.length ? (rijiArea.style.display = "block", rijiList.innerHTML = currentDayData.riji.map(s=>`<div class="sentence-item">${s}</div>`).join('')) : rijiArea.style.display = "none";
+            
+            const reviewList = document.getElementById("reviewWordList");
+            const wrongWords = Object.keys(studyData.wrongWordBook);
+            reviewList.innerHTML = wrongWords.length ? wrongWords.map(w=>`<div class="word-item wrong">${w}</div>`).join('') : `<div class="word-item">暂无错字，太棒啦！</div>`;
+        }
+
+        function renderWeekendWords() {
+            document.getElementById("reviewArea").style.display = "none";
+            document.getElementById("newArea").style.display = "none";
+            document.getElementById("weekendArea").style.display = "block";
+            const list = document.getElementById("weekendWordList");
+            const wrongWords = Object.keys(studyData.wrongWordBook);
+            list.innerHTML = wrongWords.length ? wrongWords.map(w=>`<div class="word-item wrong">${w}</div>`).join('') : `<div class="word-item">本周全对！你真是太厉害啦！🎉</div>`;
+        }
+
+        function renderWrongBook() {
+            const list = document.getElementById("wrongBookList");
+            const wrongWords = Object.entries(studyData.wrongWordBook).sort((a,b)=>b[1]-a[1]);
+            list.innerHTML = wrongWords.length 
+                ? wrongWords.map(([w,c])=>`<div class="wrong-word-item"><span class="wrong-word">${w}</span><span class="wrong-count">写错${c}次</span></div>`).join('') 
+                : `<p style="color: #999;">暂无错字，继续保持哦！</p>`;
+        }
+
+        function getTomorrowData() {
+            if(studyData.isBeforeStart) {
+                const actualStart = getActualStartDate();
+                const month = actualStart.getMonth() + 1;
+                const day = actualStart.getDate();
+                return {
+                    dateText: `${month}月${day}日 第一天`,
+                    dayData: FIRST_DAY_DATA,
+                    isEnd: false
+                };
+            }
+            const nextTotalDay = (studyData.currentUnit * UNIT_DAYS + studyData.currentDay) + 1;
+            if(nextTotalDay >= TOTAL_DAYS) {
+                return {
+                    dateText: "全部课程已完成",
+                    dayData: {dayName:"已结课", type1:[], type2:[]},
+                    isEnd: true
+                };
+            }
+            const nextUnit = Math.floor(nextTotalDay / UNIT_DAYS);
+            const nextDay = nextTotalDay % UNIT_DAYS;
+            const tomorrowDate = new Date();
+            tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+            const month = tomorrowDate.getMonth() + 1;
+            const day = tomorrowDate.getDate();
+            return {
+                dateText: `${month}月${day}日 第${nextTotalDay + 1}天`,
+                dayData: bookData[nextUnit].days[nextDay],
+                isEnd: false
+            };
+        }
+
+        function openPlanCenter() {
+            renderPlanCenter();
+            document.getElementById("planCenterModal").classList.add("show");
+        }
+        function closePlanCenter() {
+            document.getElementById("planCenterModal").classList.remove("show");
+        }
+
+        function renderPlanCenter() {
+            const statusEl = document.getElementById("todayStatus");
+            const tipEl = document.getElementById("todayPlanTip");
+            const tomorrowTitleEl = document.getElementById("tomorrowPlanTitle");
+            const tomorrowDescEl = document.getElementById("tomorrowPlanDesc");
+            const tomorrowWrongEl = document.getElementById("planTomorrowWrongWords");
+            const tomorrowType1El = document.getElementById("planTomorrowType1");
+            const tomorrowType2El = document.getElementById("planTomorrowType2");
+            const advanceBtn = document.getElementById("advanceBtn");
+
+            if(studyData.isBeforeStart) {
+                const actualStart = getActualStartDate();
+                const month = actualStart.getMonth() + 1;
+                const day = actualStart.getDate();
+                statusEl.className = "status-tag status-prepare";
+                statusEl.innerText = "未开始";
+                tipEl.innerText = `学习尚未开始，${month}月${day}日正式启动~`;
+                document.getElementById("planTodayWords").innerHTML = '<div class="word-item">明日开始学习</div>';
+                advanceBtn.style.display = "none";
+            } else {
+                statusEl.className = studyData.isFinished ? "status-tag status-done" : "status-tag status-doing";
+                statusEl.innerText = studyData.isFinished ? "已完成" : "未完成";
+                tipEl.innerText = "认真完成今日默写哦~";
+                currentTomorrowData = getTomorrowData();
+                if(studyData.isFinished && !currentTomorrowData.isEnd) {
+                    advanceBtn.style.display = "block";
+                } else {
+                    advanceBtn.style.display = "none";
+                }
+            }
+
+            const tomorrowData = getTomorrowData();
+            currentTomorrowData = tomorrowData;
+            tomorrowTitleEl.innerText = `🎯 明日计划（${tomorrowData.dateText}）`;
+            tomorrowDescEl.innerText = `✅ ${tomorrowData.dayData.dayName} 全量生字默写`;
+            
+            const wrongWords = Object.keys(studyData.wrongWordBook);
+            tomorrowWrongEl.innerHTML = wrongWords.length 
+                ? wrongWords.map(word => `<div class="plan-word-item">${word}</div>`).join('')
+                : '<div class="word-item">暂无错字，继续保持！</div>';
+            
+            tomorrowType1El.innerHTML = tomorrowData.dayData.type1.length 
+                ? tomorrowData.dayData.type1.map(word => `<div class="plan-word-item">${word}</div>`).join('')
+                : '<div class="word-item">暂无生字</div>';
+            
+            tomorrowType2El.innerHTML = tomorrowData.dayData.type2.length 
+                ? tomorrowData.dayData.type2.map(word => `<div class="plan-word-item">${word}</div>`).join('')
+                : '<div class="word-item">暂无生字</div>';
+        }
+
+        function updateWrongWordBook(submittedWrongWords, isAdvance = false) {
+            submittedWrongWords.forEach(word => {
+                studyData.wrongWordBook[word] = (studyData.wrongWordBook[word] || 0) + 1;
+            });
+
+            let currentReviewWords = [];
+            if(isAdvance) {
+                const tomorrowData = getTomorrowData();
+                currentReviewWords = [...new Set([...Object.keys(studyData.wrongWordBook), ...tomorrowData.dayData.type1, ...tomorrowData.dayData.type2])];
+            } else {
+                const currentDayData = bookData[studyData.currentUnit].days[studyData.currentDay];
+                currentReviewWords = [...new Set([...Object.keys(studyData.wrongWordBook), ...currentDayData.type1, ...currentDayData.type2])];
+            }
+
+            const wrongSet = new Set(submittedWrongWords);
+            const existingWrongWords = Object.keys(studyData.wrongWordBook);
+            existingWrongWords.forEach(word => {
+                if(currentReviewWords.includes(word) && !wrongSet.has(word)) {
+                    delete studyData.wrongWordBook[word];
+                }
+            });
+
+            saveData();
+            renderWrongBook();
+            renderPlanCenter();
+            renderDailyContent();
+        }
+
+        function openAdvanceFinishModal() {
+            closePlanCenter();
+            document.getElementById("advanceWrongWordInput").value = "";
+            document.getElementById("advanceFinishModal").classList.add("show");
+        }
+        function closeAdvanceFinishModal() {
+            document.getElementById("advanceFinishModal").classList.remove("show");
+        }
+
+        function showAdvanceTipModal(text) {
+            document.getElementById("advanceTipText").innerHTML = text;
+            document.getElementById("advanceTipModal").classList.add("show");
+        }
+        function closeAdvanceTipModal() {
+            document.getElementById("advanceTipModal").classList.remove("show");
+            updatePage();
+        }
+
+        function submitAdvanceNoWrong() {
+            closeAdvanceFinishModal();
+            updateWrongWordBook([], true);
+            studyData.advanceDays = (studyData.advanceDays || 0) + 1;
+            studyData.isFinished = false;
+            autoSetCurrentProgress();
+            loadTodayDefaultWords();
+            saveData();
+            showAdvanceTipModal("太厉害啦！提前完成了明日的默写，而且全对！你真是个自律的小天才！🎉<br><br>明天的计划已经自动更新啦！错字本也同步更新了哦~");
+            launchFireworks();
+        }
+
+        function submitAdvanceWrongWords() {
+            const input = document.getElementById("advanceWrongWordInput").value.trim();
+            if(!input) { 
+                showAdvanceTipModal("请输入错字，或者点击无错字按钮哦~");
+                return; 
+            }
+            const wrongWords = input.split(/\s+/).filter(w=>w.length===1);
+            if(!wrongWords.length) { 
+                showAdvanceTipModal("请输入正确的汉字哦~");
+                return; 
+            }
+
+            updateWrongWordBook(wrongWords, true);
+            studyData.advanceDays = (studyData.advanceDays || 0) + 1;
+            studyData.isFinished = false;
+            autoSetCurrentProgress();
+            loadTodayDefaultWords();
+            saveData();
+            
+            closeAdvanceFinishModal();
+            showAdvanceTipModal(`宝贝太棒啦！提前完成了明日的默写！<br><br>写错的字记得每个抄3遍，组2个词语哦，下次一定能写对！💪<br><br>明天的计划已经自动更新啦！错字本也同步更新了哦~`);
+        }
+
+        function openDelayModal() {
+            if(studyData.isBeforeStart) {
+                showTipModal("学习尚未开始，无需顺延哦~");
+                return;
+            }
+            document.getElementById("delayModal").classList.add("show");
+        }
+        function closeDelayModal() {
+            document.getElementById("delayModal").classList.remove("show");
+        }
+        function executeDelay() {
+            closeDelayModal();
+            studyData.delayDays = (studyData.delayDays || 0) + 1;
+            studyData.isFinished = false;
+            autoSetCurrentProgress();
+            loadTodayDefaultWords();
+            saveData();
+            updatePage();
+            showTipModal("已顺延一天！今日计划已调整到明日，所有后续计划往后延一天~");
+        }
+
+        function openClearModal() {
+            document.getElementById("clearModal").classList.add("show");
+        }
+        function closeClearModal() {
+            document.getElementById("clearModal").classList.remove("show");
+        }
+
+        function showConfirmModal(type) {
+            currentClearAction = type;
+            closeClearModal();
+            
+            const titleEl = document.getElementById("confirmTitle");
+            const textEl = document.getElementById("confirmText");
+            const actionBtn = document.getElementById("confirmActionBtn");
+            
+            if(type === 'today') {
+                titleEl.innerText = "⚠️ 确认清除今日记录？";
+                textEl.innerHTML = `仅清空：<strong>今日错字、默写完成状态</strong><br>历史记录会完整保留！`;
+                actionBtn.innerText = "确认清除";
+            } else {
+                titleEl.innerText = "⚠️ 确认清除所有记录？";
+                textEl.innerHTML = `🗑️ 清空：<strong>错字本、所有错字、全部默写状态、提前完成进度、顺延进度</strong><br>✅ 保留：学习计划、开始日期`;
+                actionBtn.innerText = "确认清除";
+            }
+            
+            document.getElementById("confirmModal").classList.add("show");
+        }
+
+        function closeConfirmModal() {
+            document.getElementById("confirmModal").classList.remove("show");
+            currentClearAction = null;
+        }
+
+        function executeConfirmAction() {
+            if(currentClearAction === 'today') {
+                studyData.todayWrongWords = [];
+                studyData.isFinished = false;
+                saveData();
+                updatePage();
+                closeConfirmModal();
+            } else if(currentClearAction === 'all') {
+                studyData.wrongWordBook = {};
+                studyData.lastDayWrongWords = [];
+                studyData.weekWrongWords = [];
+                studyData.todayWrongWords = [];
+                studyData.isFinished = false;
+                studyData.advanceDays = 0;
+                studyData.delayDays = 0;
+                saveData();
+                autoSetCurrentProgress();
+                loadTodayDefaultWords();
+                updatePage();
+                closeConfirmModal();
+            }
+        }
+
+        function openFinishModal() {
+            if(studyData.isBeforeStart) { 
+                const actualStart = getActualStartDate();
+                const month = actualStart.getMonth() + 1;
+                const day = actualStart.getDate();
+                showTipModal(`学习尚未开始，${month}月${day}日正式启动哦~`);
+                return; 
+            }
+            document.getElementById("wrongWordInput").value = "";
+            document.getElementById("finishModal").classList.add("show");
+        }
+        function closeFinishModal() { 
+            document.getElementById("finishModal").classList.remove("show"); 
+        }
+
+        function showTipModal(text) {
+            document.getElementById("tipText").innerHTML = text;
+            document.getElementById("tipModal").classList.add("show");
+        }
+        function closeTipModal() {
+            document.getElementById("tipModal").classList.remove("show");
+        }
+
+        function submitNoWrong() {
+            closeFinishModal();
+            updateWrongWordBook([], false);
+            studyData.todayWrongWords = [];
+            studyData.lastDayWrongWords = [];
+            studyData.isFinished = true;
+            document.getElementById("praiseText").innerText = praiseList[Math.floor(Math.random()*praiseList.length)];
+            document.getElementById("praiseModal").classList.add("show");
+            launchFireworks();
+            saveData();
+        }
+
+        function submitWrongWords() {
+            const input = document.getElementById("wrongWordInput").value.trim();
+            if(!input) { 
+                showTipModal("请输入错字，或者点击无错字按钮哦~");
+                return; 
+            }
+            const wrongWords = input.split(/\s+/).filter(w=>w.length===1);
+            if(!wrongWords.length) { 
+                showTipModal("请输入正确的汉字哦~");
+                return; 
+            }
+
+            studyData.todayWrongWords = wrongWords;
+            updateWrongWordBook(wrongWords, false);
+            studyData.lastDayWrongWords = wrongWords;
+            studyData.weekWrongWords = [...new Set([...studyData.weekWrongWords,...wrongWords])];
+            studyData.isFinished = true;
+
+            closeFinishModal();
+            showTipModal(`宝贝加油！写错的字记得每个抄3遍，组2个词语哦，下次一定能写对！💪`);
+            saveData();
+            updatePage();
+        }
+
+        function closePraiseModal() { 
+            document.getElementById("praiseModal").classList.remove("show"); 
+            updatePage(); 
+        }
+        function openWrongBook() { 
+            renderWrongBook(); 
+            document.getElementById("wrongBookModal").classList.add("show"); 
+        }
+        function closeWrongBook() { 
+            document.getElementById("wrongBookModal").classList.remove("show"); 
+        }
+
+        function launchFireworks() {
+            const canvas = document.getElementById("fireworks");
+            const ctx = canvas.getContext("2d");
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            class Particle{
+                constructor(x,y,c){
+                    this.x=x; this.y=y; this.s=Math.random()*3+2; this.a=Math.random()*Math.PI*2;
+                    this.g=0.05; this.vx=Math.cos(this.a)*this.s; this.vy=Math.sin(this.a)*this.s;
+                    this.alpha=1; this.d=Math.random()*0.015+0.01; this.c=c;
+                }
+                update(){ this.vy+=this.g; this.x+=this.vx; this.y+=this.vy; this.alpha-=this.d; }
+                draw(){ ctx.save(); ctx.globalAlpha=this.alpha; ctx.beginPath(); ctx.arc(this.x,this.y,2,0,Math.PI*2); ctx.fillStyle=this.c; ctx.fill(); ctx.restore(); }
+            }
+            const p=[];
+            const colors=["#FF6B9D","#FFD700","#A78BFA","#34D399"];
+            function f(x,y){ const c=colors[Math.floor(Math.random()*colors.length)]; for(let i=0;i<100;i++)p.push(new Particle(x,y,c)); }
+            for(let i=0;i<6;i++)setTimeout(()=>f(Math.random()*canvas.width,Math.random()*canvas.height*0.7),i*200);
+            function a(){
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                for(let i=p.length-1;i>=0;i--){ p[i].update(); p[i].draw(); if(p[i].alpha<=0)p.splice(i,1); }
+                if(p.length>0)requestAnimationFrame(a); else ctx.clearRect(0,0,canvas.width,canvas.height);
+            }
+            a();
+        }
+
+        window.addEventListener("resize",()=>{ const c=document.getElementById("fireworks"); c.width=window.innerWidth; c.height=window.innerHeight; });
+        window.onload = initData;
+    </script>
+</body>
+</html>
