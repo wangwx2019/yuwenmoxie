@@ -285,7 +285,7 @@
                 </p>
                 <div style="margin-bottom: 12px;">
                     <label style="font-size: 14px; font-weight: 700; color: #374151; display: block; margin-bottom: 6px;">🔑 GitHub Personal Access Token</label>
-                    <input type="password" class="modal-input" id="githubTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="margin-bottom: 6px;">
+                    <input type="password" class="modal-input" id="githubTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="margin-bottom: 6px;" oninput="localStorage.setItem('githubToken', this.value.trim())">
                     <p style="font-size: 12px; color: #9CA3AF;">需要 <strong>repo</strong> 权限。可在 <a href="https://github.com/settings/tokens" target="_blank" style="color: #3B82F6;">GitHub Token设置</a> 生成。</p>
                 </div>
                 <div id="syncStatus" class="sync-status">就绪</div>
