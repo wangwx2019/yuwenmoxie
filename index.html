@@ -63,6 +63,14 @@
         #fireworks { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10000; }
         .plan-word-title { font-size: 20px; color: #FF6B9D; font-weight: 800; margin: 15px 0 12px 0; }
         .plan-word-item { background: #FFF0F7; border: 3px solid #FFB6D9; border-radius: 16px; padding: 12px 20px; font-size: 20px; font-weight: 700; color: #8A2BE2; min-width: 60px; text-align: center; cursor: default; }
+        .btn-export { background: linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%); color: #fff; box-shadow: 0 4px 0px #2563EB; }
+        .btn-sync { background: linear-gradient(180deg, #8B5CF6 0%, #7C3AED 100%); color: #fff; box-shadow: 0 4px 0px #6D28D9; }
+        .btn-icon { flex: 0.7; font-size: 14px; padding: 12px 4px; }
+        .sync-status { font-size: 14px; color: #666; margin: 10px 0; padding: 10px; background: #F3F4F6; border-radius: 12px; text-align: center; }
+        .sync-status.success { background: #D1FAE5; color: #065F46; }
+        .sync-status.error { background: #FEE2E2; color: #991B1B; }
+        .sync-status.loading { background: #DBEAFE; color: #1E40AF; }
+        .hidden-file-input { display: none; }
     </style>
 </head>
 <body>
@@ -113,6 +121,8 @@
         <button class="btn btn-clear" onclick="openClearModal()">🗑️ 清除</button>
         <button class="btn btn-delay" onclick="openDelayModal()">⏸️ 未打卡</button>
         <button class="btn btn-primary" onclick="openFinishModal()">✅ 默写结束</button>
+        <button class="btn btn-export btn-icon" onclick="showExportModal()">📤 导出</button>
+        <button class="btn btn-sync btn-icon" onclick="showSyncModal()">☁️ 同步</button>
     </div>
 
     <!-- 弹窗区域 -->
@@ -244,6 +254,45 @@
                 <div class="modal-btn-group">
                     <button class="modal-btn btn-cancel" onclick="closeDelayModal()">取消</button>
                     <button class="modal-btn btn-danger" onclick="executeDelay()">确认顺延</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出/导入弹窗 -->
+    <div class="modal-mask" id="exportModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">📤 数据管理</h3></div>
+            <div class="modal-content-scroll">
+                <p style="font-size: 16px; color: #666; margin-bottom: 15px;">导出数据为JSON文件，或从JSON文件恢复数据。</p>
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-confirm" onclick="exportData()">📥 导出数据（下载JSON）</button>
+                    <button class="modal-btn btn-primary" style="background: #34D399; color: #fff;" onclick="document.getElementById('importFileInput').click()">📂 导入数据（选择JSON）</button>
+                    <input type="file" id="importFileInput" class="hidden-file-input" accept=".json" onchange="importData(event)">
+                    <button class="modal-btn btn-cancel" onclick="closeExportModal()">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GitHub同步弹窗 -->
+    <div class="modal-mask" id="syncModal">
+        <div class="modal-box">
+            <div class="modal-header"><h3 class="modal-title">☁️ GitHub同步</h3></div>
+            <div class="modal-content-scroll">
+                <p style="font-size: 15px; color: #666; margin-bottom: 12px; line-height: 1.5;">
+                    将数据同步到 GitHub 仓库 <strong>wangwx2019/yuwenmoxie</strong>，多设备共享进度。
+                </p>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 14px; font-weight: 700; color: #374151; display: block; margin-bottom: 6px;">🔑 GitHub Personal Access Token</label>
+                    <input type="password" class="modal-input" id="githubTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="margin-bottom: 6px;">
+                    <p style="font-size: 12px; color: #9CA3AF;">需要 <strong>repo</strong> 权限。可在 <a href="https://github.com/settings/tokens" target="_blank" style="color: #3B82F6;">GitHub Token设置</a> 生成。</p>
+                </div>
+                <div id="syncStatus" class="sync-status">就绪</div>
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-confirm" onclick="syncToGitHub()">⬆️ 上传到GitHub</button>
+                    <button class="modal-btn btn-primary" style="background: #8B5CF6; color: #fff;" onclick="syncFromGitHub()">⬇️ 从GitHub下载</button>
+                    <button class="modal-btn btn-cancel" onclick="closeSyncModal()">关闭</button>
                 </div>
             </div>
         </div>
@@ -757,6 +806,151 @@
                 if(p.length>0)requestAnimationFrame(a); else ctx.clearRect(0,0,canvas.width,canvas.height);
             }
             a();
+        }
+
+        // ===== 导出/导入功能 =====
+        function showExportModal() {
+            document.getElementById("exportModal").classList.add("show");
+        }
+        function closeExportModal() {
+            document.getElementById("exportModal").classList.remove("show");
+        }
+        function exportData() {
+            const dataStr = JSON.stringify(studyData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            a.download = `yuwenmoxie-backup-${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showTipModal('✅ 数据导出成功！文件已下载。');
+        }
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (typeof imported.currentUnit === 'undefined' || typeof imported.wrongWordBook === 'undefined') {
+                        showTipModal('❌ 文件格式不正确，请选择正确的备份文件。');
+                        return;
+                    }
+                    studyData = imported;
+                    saveData();
+                    autoSetCurrentProgress();
+                    loadTodayDefaultWords();
+                    updatePage();
+                    closeExportModal();
+                    showTipModal('✅ 数据导入成功！页面已刷新。');
+                } catch(err) {
+                    showTipModal('❌ 文件解析失败：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ===== GitHub同步功能 =====
+        const GITHUB_REPO_OWNER = 'wangwx2019';
+        const GITHUB_REPO_NAME = 'yuwenmoxie';
+        const GITHUB_FILE_PATH = 'data/yuwenmoxie-data.json';
+
+        function showSyncModal() {
+            const savedToken = localStorage.getItem('githubToken');
+            if (savedToken) {
+                document.getElementById('githubTokenInput').value = savedToken;
+            }
+            document.getElementById('syncStatus').className = 'sync-status';
+            document.getElementById('syncStatus').innerText = '就绪';
+            document.getElementById('syncModal').classList.add('show');
+        }
+        function closeSyncModal() {
+            document.getElementById('syncModal').classList.remove('show');
+        }
+        function setSyncStatus(text, type) {
+            const el = document.getElementById('syncStatus');
+            el.className = 'sync-status' + (type ? ' ' + type : '');
+            el.innerText = text;
+        }
+        function getGitHubToken() {
+            const token = document.getElementById('githubTokenInput').value.trim();
+            if (!token) {
+                setSyncStatus('❌ 请先输入 GitHub Token', 'error');
+                return null;
+            }
+            localStorage.setItem('githubToken', token);
+            return token;
+        }
+        async function syncToGitHub() {
+            const token = getGitHubToken();
+            if (!token) return;
+            setSyncStatus('⏳ 正在上传到 GitHub...', 'loading');
+            try {
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(studyData, null, 2))));
+                const commitMsg = `同步学习数据 ${new Date().toLocaleString('zh-CN')}`;
+                // 先检查文件是否存在，获取 SHA
+                let sha = null;
+                try {
+                    const checkRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
+                        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                    });
+                    if (checkRes.ok) {
+                        const checkData = await checkRes.json();
+                        sha = checkData.sha;
+                    }
+                } catch(e) { /* 文件不存在，首次上传 */ }
+                const body = { message: commitMsg, content: content };
+                if (sha) body.sha = sha;
+                const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) {
+                    setSyncStatus('✅ 上传成功！数据已同步到 GitHub', 'success');
+                } else {
+                    const errData = await res.json();
+                    setSyncStatus(`❌ 上传失败：${errData.message || '请检查Token权限'}`, 'error');
+                }
+            } catch(err) {
+                setSyncStatus(`❌ 网络错误：${err.message}`, 'error');
+            }
+        }
+        async function syncFromGitHub() {
+            const token = getGitHubToken();
+            if (!token) return;
+            setSyncStatus('⏳ 正在从 GitHub 下载...', 'loading');
+            try {
+                const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
+                    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                });
+                if (!res.ok) {
+                    setSyncStatus('❌ 下载失败：仓库中暂无同步数据', 'error');
+                    return;
+                }
+                const data = await res.json();
+                const decoded = decodeURIComponent(escape(atob(data.content)));
+                const imported = JSON.parse(decoded);
+                if (typeof imported.currentUnit === 'undefined' || typeof imported.wrongWordBook === 'undefined') {
+                    setSyncStatus('❌ 云端数据格式不正确', 'error');
+                    return;
+                }
+                studyData = imported;
+                saveData();
+                autoSetCurrentProgress();
+                loadTodayDefaultWords();
+                updatePage();
+                closeSyncModal();
+                showTipModal('✅ 数据下载成功！已从 GitHub 恢复最新数据。');
+            } catch(err) {
+                setSyncStatus(`❌ 网络错误：${err.message}`, 'error');
+            }
         }
 
         window.addEventListener("resize",()=>{ const c=document.getElementById("fireworks"); c.width=window.innerWidth; c.height=window.innerHeight; });
