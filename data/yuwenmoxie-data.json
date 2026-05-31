@@ -1,10 +1,16 @@
 {
   "currentUnit": 5,
   "currentDay": 4,
-  "wrongWordBook": {},
-  "lastDayWrongWords": [],
-  "weekWrongWords": [],
-  "isWeekend": false,
+  "wrongWordBook": {
+    "吧": 1
+  },
+  "lastDayWrongWords": [
+    "吧"
+  ],
+  "weekWrongWords": [
+    "吧"
+  ],
+  "isWeekend": true,
   "isBeforeStart": false,
   "todayWords": [
     "棍",
@@ -28,8 +34,10 @@
     "织女",
     "北斗星"
   ],
-  "todayWrongWords": [],
+  "todayWrongWords": [
+    "吧"
+  ],
   "isFinished": false,
   "advanceDays": 0,
-  "delayDays": 3
+  "delayDays": 5
 }
