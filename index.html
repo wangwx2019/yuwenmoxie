@@ -285,13 +285,12 @@
                 </p>
                 <div style="margin-bottom: 12px;">
                     <label style="font-size: 14px; font-weight: 700; color: #374151; display: block; margin-bottom: 6px;">🔑 GitHub Personal Access Token</label>
-                    <input type="password" class="modal-input" id="githubTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="margin-bottom: 6px;" oninput="localStorage.setItem('githubToken', this.value.trim())">
+                    <input type="password" class="modal-input" id="githubTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="margin-bottom: 6px;" oninput="localStorage.setItem('github_token_yuwenmoxie', this.value.trim())">
                     <p style="font-size: 12px; color: #9CA3AF;">需要 <strong>repo</strong> 权限。可在 <a href="https://github.com/settings/tokens" target="_blank" style="color: #3B82F6;">GitHub Token设置</a> 生成。</p>
                 </div>
                 <div id="syncStatus" class="sync-status">就绪</div>
                 <div class="modal-btn-group">
-                    <button class="modal-btn btn-confirm" onclick="syncToGitHub()">⬆️ 上传到GitHub</button>
-                    <button class="modal-btn btn-primary" style="background: #8B5CF6; color: #fff;" onclick="syncFromGitHub()">⬇️ 从GitHub下载</button>
+                    <button class="modal-btn btn-confirm" id="doSyncToGithub">☁️ 同步到 GitHub</button>
                     <button class="modal-btn btn-cancel" onclick="closeSyncModal()">关闭</button>
                 </div>
             </div>
@@ -390,6 +389,7 @@
             autoSetCurrentProgress();
             loadTodayDefaultWords();
             updatePage();
+            loadFromGithub(); // 启动时从 GitHub 自动加载最新数据
         }
 
         function saveData() {
@@ -856,13 +856,13 @@
             event.target.value = '';
         }
 
-        // ===== GitHub同步功能 =====
+        // ===== GitHub同步功能（yoyo风格） =====
         const GITHUB_REPO_OWNER = 'wangwx2019';
         const GITHUB_REPO_NAME = 'yuwenmoxie';
         const GITHUB_FILE_PATH = 'data/yuwenmoxie-data.json';
 
         function showSyncModal() {
-            const savedToken = localStorage.getItem('githubToken');
+            const savedToken = localStorage.getItem('github_token_yuwenmoxie');
             if (savedToken) {
                 document.getElementById('githubTokenInput').value = savedToken;
             }
@@ -878,80 +878,59 @@
             el.className = 'sync-status' + (type ? ' ' + type : '');
             el.innerText = text;
         }
-        function getGitHubToken() {
-            const token = document.getElementById('githubTokenInput').value.trim();
-            if (!token) {
-                setSyncStatus('❌ 请先输入 GitHub Token', 'error');
-                return null;
-            }
-            localStorage.setItem('githubToken', token);
-            return token;
-        }
-        async function syncToGitHub() {
-            const token = getGitHubToken();
-            if (!token) return;
-            setSyncStatus('⏳ 正在上传到 GitHub...', 'loading');
+
+        async function syncToGithub() {
+            const token = localStorage.getItem('github_token_yuwenmoxie');
+            if (!token) { setSyncStatus('❌ 请先配置 GitHub Token', 'error'); return; }
+            setSyncStatus('⏳ 正在同步到 GitHub...', 'loading');
             try {
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(studyData, null, 2))));
-                const commitMsg = `同步学习数据 ${new Date().toLocaleString('zh-CN')}`;
-                // 先检查文件是否存在，获取 SHA
+                const url = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`;
                 let sha = null;
-                try {
-                    const checkRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
-                        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-                    });
-                    if (checkRes.ok) {
-                        const checkData = await checkRes.json();
-                        sha = checkData.sha;
-                    }
-                } catch(e) { /* 文件不存在，首次上传 */ }
-                const body = { message: commitMsg, content: content };
+                const check = await fetch(url, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' } });
+                if (check.ok) { sha = (await check.json()).sha; }
+                else if (check.status !== 404) { const e = await check.json(); setSyncStatus(`❌ ${e.message}`, 'error'); return; }
+                const body = { message: `学习数据同步 ${new Date().toLocaleString('zh-CN')}`, content };
                 if (sha) body.sha = sha;
-                const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
-                    body: JSON.stringify(body)
-                });
+                const res = await fetch(url, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' }, body: JSON.stringify(body) });
                 if (res.ok) {
-                    setSyncStatus('✅ 上传成功！数据已同步到 GitHub', 'success');
+                    setSyncStatus('✅ 同步到 GitHub 成功！', 'success');
                 } else {
-                    const errData = await res.json();
-                    setSyncStatus(`❌ 上传失败：${errData.message || '请检查Token权限'}`, 'error');
+                    const e = await res.json();
+                    setSyncStatus(`❌ ${e.message}`, 'error');
                 }
-            } catch(err) {
-                setSyncStatus(`❌ 网络错误：${err.message}`, 'error');
+            } catch(e) {
+                setSyncStatus(`❌ 网络错误：${e.message}`, 'error');
             }
         }
-        async function syncFromGitHub() {
-            const token = getGitHubToken();
+
+        async function loadFromGithub() {
+            const token = localStorage.getItem('github_token_yuwenmoxie');
             if (!token) return;
-            setSyncStatus('⏳ 正在从 GitHub 下载...', 'loading');
             try {
-                const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
-                    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                const url = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`;
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
                 });
-                if (!res.ok) {
-                    setSyncStatus('❌ 下载失败：仓库中暂无同步数据', 'error');
-                    return;
-                }
-                const data = await res.json();
-                const decoded = decodeURIComponent(escape(atob(data.content)));
-                const imported = JSON.parse(decoded);
-                if (typeof imported.currentUnit === 'undefined' || typeof imported.wrongWordBook === 'undefined') {
-                    setSyncStatus('❌ 云端数据格式不正确', 'error');
-                    return;
-                }
+                if (!res.ok) return;
+                const d = await res.json();
+                const imported = JSON.parse(decodeURIComponent(escape(atob(d.content))));
+                if (typeof imported.currentUnit === 'undefined' || typeof imported.wrongWordBook === 'undefined') return;
                 studyData = imported;
                 saveData();
                 autoSetCurrentProgress();
                 loadTodayDefaultWords();
                 updatePage();
-                closeSyncModal();
-                showTipModal('✅ 数据下载成功！已从 GitHub 恢复最新数据。');
-            } catch(err) {
-                setSyncStatus(`❌ 网络错误：${err.message}`, 'error');
+                console.log('✅ 已从 GitHub 自动加载最新数据');
+            } catch(e) {
+                console.log('📁 从 GitHub 加载失败，使用本地数据');
             }
         }
+
+        // 同步按钮绑定
+        document.getElementById('doSyncToGithub').addEventListener('click', () => {
+            syncToGithub();
+        });
 
         window.addEventListener("resize",()=>{ const c=document.getElementById("fireworks"); c.width=window.innerWidth; c.height=window.innerHeight; });
         window.onload = initData;
